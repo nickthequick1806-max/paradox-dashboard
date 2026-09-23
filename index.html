@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>PARADOX ANTICHEAT</title>
+  <meta name="theme-color" content="#08110f" />
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="stylesheet" href="assets/css/mobile-responsive.css" />
+  <link rel="stylesheet" href="assets/css/production.css">
+  <link rel="stylesheet" href="assets/css/production.css">
+</head>
+<body class="auth-active preboot">
+  <div class="app-shell" id="appShell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-row">
+        <img src="assets/img/logo.svg" class="brand-logo" alt="Paradox AntiCheat logo" />
+        <div class="brand-text">PARADOX <span>ANTICHEAT</span></div>
+        <button class="sidebar-close" id="sidebarCloseButton" type="button" aria-label="Close navigation"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="nav-scroll" id="navScroll">
+        <div class="nav-section">
+          <div class="nav-label">Main</div>
+          <button class="nav-item active" data-page="overview"><span class="nav-icon"><i class="fa-solid fa-house"></i></span><span>Overview</span></button>
+          <button class="nav-item" data-page="console"><span class="nav-icon"><i class="fa-solid fa-terminal"></i></span><span>Console</span></button>
+          <button class="nav-item" data-page="players"><span class="nav-icon"><i class="fa-solid fa-users"></i></span><span>Players</span></button>
+          <button class="nav-item" data-page="falcon"><span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span><span>Falcon</span></button>
+          <button class="nav-item" data-page="interactive-map"><span class="nav-icon"><i class="fa-solid fa-map-location-dot"></i></span><span>Interactive Map</span></button>
+        </div>
+
+        <div class="nav-section collapsible">
+          <button class="nav-label nav-section-toggle">Configuration <span>⌃</span></button>
+          <div class="nav-section-body">
+            <button class="nav-item" data-page="entity-rules"><span class="nav-icon"><i class="fa-solid fa-cubes"></i></span><span>Entity Rules</span></button>
+            <button class="nav-item" data-page="particle-rules"><span class="nav-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span><span>Particle Rules</span></button>
+            <button class="nav-item" data-page="weapon-rules"><span class="nav-icon"><i class="fa-solid fa-crosshairs"></i></span><span>Weapon Rules</span></button>
+            <button class="nav-item" data-page="explosion-rules"><span class="nav-icon"><i class="fa-solid fa-burst"></i></span><span>Explosion Rules</span></button>
+            <button class="nav-item" data-page="event-protection"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span><span>Event Protection</span></button>
+            <button class="nav-item" data-page="general-rules"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span><span>General AC Rules</span></button>
+            <button class="nav-item" data-page="safety-rules"><span class="nav-icon"><i class="fa-solid fa-shield-heart"></i></span><span>Safety Rules</span></button>
+            <button class="nav-item" data-page="native-rules"><span class="nav-icon"><i class="fa-solid fa-code"></i></span><span>Native Rules</span></button>
+            <button class="nav-item" data-page="key-locks"><span class="nav-icon"><i class="fa-solid fa-keyboard"></i></span><span>Key Locks</span></button>
+            <button class="nav-item" data-page="rate-limits"><span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span><span>Rate Limits</span></button>
+            <button class="nav-item" data-page="security-rules"><span class="nav-icon"><i class="fa-solid fa-shield"></i></span><span>Security Rules</span></button>
+          </div>
+        </div>
+
+        <div class="nav-section collapsible">
+          <button class="nav-label nav-section-toggle">Security <span>⌃</span></button>
+          <div class="nav-section-body">
+            <button class="nav-item" data-page="logs"><span class="nav-icon"><i class="fa-solid fa-scroll"></i></span><span>Logs</span></button>
+            <button class="nav-item" data-page="live-view"><span class="nav-icon"><i class="fa-solid fa-video"></i></span><span>Live View</span></button>
+            <button class="nav-item" data-page="insights"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span><span>Insights</span></button>
+            <button class="nav-item" data-page="player-lookup"><span class="nav-icon"><i class="fa-solid fa-magnifying-glass"></i></span><span>Player Lookup</span></button>
+            <button class="nav-item" data-page="firewall-analytics"><span class="nav-icon"><i class="fa-solid fa-chart-column"></i></span><span>Firewall Analytics</span></button>
+            <button class="nav-item" data-page="detections"><span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span><span>Detections</span></button>
+            <button class="nav-item" data-page="removed-detections"><span class="nav-icon"><i class="fa-solid fa-trash-can"></i></span><span>Removed Detections</span></button>
+            <button class="nav-item" data-page="replays"><span class="nav-icon"><i class="fa-solid fa-film"></i></span><span>Replays</span></button>
+          </div>
+        </div>
+
+        <div class="nav-section collapsible">
+          <button class="nav-label nav-section-toggle">Management <span>⌃</span></button>
+          <div class="nav-section-body">
+            <button class="nav-item" data-page="assets"><span class="nav-icon"><i class="fa-solid fa-box-archive"></i></span><span>Assets</span></button>
+            <button class="nav-item" data-page="logbook"><span class="nav-icon"><i class="fa-solid fa-book"></i></span><span>Logbook</span></button>
+            <button class="nav-item" data-page="permissions"><span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span><span>Permissions</span></button>
+            <button class="nav-item" data-page="server-details"><span class="nav-icon"><i class="fa-solid fa-server"></i></span><span>Server Details</span></button>
+            <button class="nav-item" data-page="api-keys"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span>API Keys</span></button>
+            <button class="nav-item" data-page="support-tickets"><span class="nav-icon"><i class="fa-solid fa-headset"></i></span><span>Support Tickets</span></button>
+            <button class="nav-item" data-page="backups"><span class="nav-icon"><i class="fa-solid fa-box-archive"></i></span><span>Backups</span></button>
+            <button class="nav-item" data-page="cdn"><span class="nav-icon"><i class="fa-solid fa-cloud"></i></span><span>CDN</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-foot"></div>
+    </aside>
+
+    <header class="topbar">
+      <button class="mobile-menu-btn" id="mobileMenuButton" type="button" aria-label="Open navigation" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
+      <div class="search-wrap" id="globalSearchButton" role="button" tabindex="0">
+        <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+        <span class="search-placeholder">Search players, bans, IDs, or events...</span>
+        <kbd>Ctrl K</kbd>
+      </div>
+      <div class="topbar-spacer"></div>
+      <button class="top-link" data-action="docs"><i class="fa-regular fa-file-lines"></i><span>Documentation</span></button>
+      <button class="top-link" data-action="support"><i class="fa-regular fa-circle-question"></i><span>Support</span></button>
+      <button class="icon-btn notification-btn" id="notificationButton" data-action="notifications" aria-label="Notifications"><i class="fa-regular fa-bell"></i><span class="notification-dot"></span></button>
+      <div class="profile" id="profileButton">
+        <div class="avatar">F</div>
+        <div class="profile-copy"><strong>FastxFingers</strong><span>Server Owner</span></div>
+        <span class="chev">⌄</span>
+      </div>
+    </header>
+
+    <main class="main" id="mainContent" tabindex="-1"></main>
+    <aside class="right-rail" id="rightRail"></aside>
+
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+  </div>
+
+  <button class="mobile-nav-fab" id="mobileNavFab" aria-label="Open navigation"><i class="fa-solid fa-bars"></i></button>
+  <div class="dropdown-layer" id="dropdownLayer"></div>
+  <div class="modal-layer" id="modalLayer" aria-hidden="true"></div>
+  <div class="auth-layer open" id="authLayer" aria-hidden="false"><div class="v13-preboot"><img src="assets/img/logo.svg" alt=""><span>PARADOX ANTICHEAT</span></div></div>
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/production.js"></script>
+  <script src="assets/js/production.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/mobile-responsive.js"></script>
+</body>
+</html>
