@@ -117,7 +117,7 @@
     async getConfig(){ return this.request('/api/config',{optional:true}); }
     async updateRule(id,value){ return this.request('/api/config/rule',{method:'PUT',body:{id,value}}); }
     async performAction(action,payload={}){ return this.request('/api/actions',{method:'POST',body:{action,payload}}); }
-    async search(query){ return this.request(`/api/search?q=${encodeURIComponent(query)}`,{optional:true}); }
+    async search(query){const data=await this.request(`/api/search?q=${encodeURIComponent(query)}`);return {results:(data.rows||[]).map(p=>({type:'Player',id:p.source,name:p.name,detail:p.state}))};}
     async savePolicy(policy,revision,reason){return this.request('/api/config/rule',{method:'PUT',body:{policy,revision,reason}});}
     async query(dataset,options={}){return this.request('/api/query',{method:'POST',body:{dataset,...options}});}
     async getDetail(kind,id){return this.query('detail',{kind,id:String(id)});}
