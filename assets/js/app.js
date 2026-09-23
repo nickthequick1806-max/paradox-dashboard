@@ -227,9 +227,9 @@
   }
 
   function overview(){
-    const summary=state.live?.summary||{};
-    const recent=liveRows('recentEvents',[]);
-    const tops=liveRows('topDetections',[]);
+    const summary={...state.live?.summary,...state.sectionData?.overview?.summary};
+    const recent=state.demoSession?liveRows('recentEvents',[]):(state.live?.detections||[]).slice(0,6).map(d=>({title:d.name,subtitle:d.action,player:d.playerName,time:d.time,risk:d.trust}));
+    const tops=state.demoSession?liveRows('topDetections',[]):(state.sectionData?.overview?.tops||[]);
     const recentHtml=state.demoSession ? `${eventRow('red','⊘','Cheat Detection','TriggerBot detection (Weapon Control)','Player: 2Moonlight#8421','2 minutes ago','High')}${eventRow('orange','!','Suspicious Activity','Rapid fire rate detected','Player: Unknown','5 minutes ago','Medium')}${eventRow('green','✓','Player Connected','Client verified successfully','Player: Kevin#7719','8 minutes ago','Safe')}` : (recent.length ? recent.slice(0,6).map(e=>eventRow(e.color||'green',e.icon||'✓',e.title||e.type||'Server Event',e.subtitle||e.message||'',e.player?`Player: ${e.player}`:(e.source||'Server'),e.time||'Live',e.risk||e.severity||'Safe')).join('') : noLiveData('Recent events will appear here as the FiveM bridge streams them.'));
     const topHtml=state.demoSession ? `${rank(1,'Weapon Modifications',42,74)}${rank(2,'Speed Hack',28,53)}${rank(3,'No Recoil',18,37)}${rank(4,'Menus / Injectors',16,31)}${rank(5,'Teleportation',12,22)}` : (tops.length ? tops.slice(0,5).map((r,i)=>rank(i+1,r.name||r.label||'Detection',Number(r.count||0),Math.min(100,Number(r.percent||r.pct||0)))).join('') : noLiveData('Top detections are calculated from your connected server telemetry.'));
     return `<div class="page overview-page">
@@ -238,8 +238,8 @@
         <div class="hero-content">
           <img class="hero-logo" src="assets/img/logo.svg" alt="" />
           <div class="hero-copy">
-            <span class="status-tag"><span class="dot"></span> ${state.live?.connected===false&&!state.demoSession?'SYNC OFFLINE':'ONLINE & PROTECTED'}</span>
-            <h2>${esc(state.server.name||state.live?.server?.name||'FiveM Server')} <span class="tag blue" style="vertical-align:middle">v2.4.1</span></h2>
+            <span class="status-tag"><span class="dot"></span> ${state.demoSession?'ONLINE & PROTECTED':state.live?.connected?'ONLINE · '+esc(state.live.mode):'SYNC OFFLINE'}</span>
+            <h2>${esc(state.server.name||state.live?.server?.name||'FiveM Server')} <span class="tag blue" style="vertical-align:middle">${esc(state.demoSession?'v2.4.1':state.live?.server?.version||'SHADOW')}</span></h2>
             <div class="hero-meta"><span>${esc(state.live?.server?.framework||'FiveM')}</span><span>${esc(state.live?.server?.onesync||'OneSync')}</span><span>${esc(state.live?.server?.region||state.server.region||'Live Server')}</span><span>PARADOX Protected</span></div>
             <div class="hero-caption">Live security data is sourced from the connected FiveM server. Powered by <strong>PARADOX ANTICHEAT.</strong></div>
           </div>
@@ -249,11 +249,11 @@
 
       <div class="stats-grid">
         ${stat('CONNECTIONS',String(liveOr(summary.connections,'1,172','0')),state.demoSession?'↑ 12%':'Live','Players this session',fa('right-to-bracket'),'green')}
-        ${stat('WARNINGS',String(liveOr(summary.warnings,5,'0')),state.demoSession?'↓ 38%':'Live','Rule violations detected',fa('triangle-exclamation'),'orange')}
-        ${stat('KICKS',String(liveOr(summary.kicks,0,'0')),state.demoSession?'→ 0%':'Live','Players removed',fa('bolt'),'blue')}
-        ${stat('BANS',String(liveOr(summary.bans,38,'0')),state.demoSession?'↑ 3%':'Live','Total banned players',fa('ban'),'red')}
+        ${stat('WARNINGS',String(liveOr(summary.warnings,5,'—')),state.demoSession?'↓ 38%':'Live','Rule violations detected',fa('triangle-exclamation'),'orange')}
+        ${stat('KICKS',String(liveOr(summary.kicks,0,'—')),state.demoSession?'→ 0%':'Live','Players removed',fa('bolt'),'blue')}
+        ${stat('BANS',String(liveOr(summary.bans,38,'—')),state.demoSession?'↑ 3%':'Live','Total banned players',fa('ban'),'red')}
         ${stat('REQUESTS',String(liveOr(summary.requests,'2,009','0')),state.demoSession?'↑ 18%':'Live','Client requests',fa('globe'),'purple')}
-        ${stat('DETECTIONS',String(liveOr(summary.detections,146,'0')),state.demoSession?'↓ 27%':'Live','Cheat attempts blocked',fa('bullseye'),'green')}
+        ${stat('DETECTIONS',String(liveOr(summary.detections,146,'—')),state.demoSession?'↓ 27%':'Live','Cheat attempts blocked',fa('bullseye'),'green')}
       </div>
 
       <section class="panel chart-panel span-2 detail-card" data-card-title="Server Activity">
@@ -895,6 +895,11 @@
       [0,2,0,1,0,2,1,0,3,0,1,2,0,1,0,2,0,1,0,2,1,0,1,0,2,0,1,0,1,2,0,1,0,0,2,0,1,0,0,1,0,0,1,0,1,0,0],
       [11,8,12,9,8,7,10,9,12,8,10,9,11,8,12,10,9,8,11,9,10,9,13,11,9,10,12,9,14,11,10,12,9,10,11,8,12,9,11,8,10,9,11,8,10,9,8]
     ];
+    const measured=state.sectionData?.overview;
+    if(!state.demoSession&&measured?.range===range&&measured.series){
+      const kinds=['connections','detections','kicks','bans'];
+      return {series:kinds.map((kind,i)=>({c:colors[i+1],v:measured.series[kind]})),labels:Array.from({length:24},(_,i)=>new Date((measured.since+(measured.untilAt-measured.since)*i/24)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))};
+    }
     const meta=activityRangeMeta(range);
     const ranged=state.live?.activitySeriesByRange?.[range]||state.live?.activity?.ranges?.[range];
     const liveSeries=ranged||state.live?.activitySeries||state.live?.activity?.series;
@@ -1355,7 +1360,7 @@
     const nav=e.target.closest('.nav-item'); if(nav){e.preventDefault();navigateToPage(nav.dataset.page);return;}
     const jump=e.target.closest('[data-page-jump]'); if(jump){e.preventDefault();navigateToPage(jump.dataset.pageJump);return;}
     const toggle=e.target.closest('.nav-section-toggle'); if(toggle){toggle.closest('.collapsible').classList.toggle('open');return;}
-    const range=e.target.closest('[data-range]'); if(range){state.chartRange=range.dataset.range; $$('.range-btn').forEach(b=>b.classList.toggle('active',b.dataset.range===state.chartRange)); toast('Chart range updated',`Showing ${state.chartRange} activity window.`);requestAnimationFrame(drawAllActivityCharts);return;}
+    const range=e.target.closest('[data-range]'); if(range){state.chartRange=range.dataset.range;window.ParadoxData.clear();window.ParadoxData.ensure(state,render); $$('.range-btn').forEach(b=>b.classList.toggle('active',b.dataset.range===state.chartRange)); toast('Chart range updated',`Showing ${state.chartRange} activity window.`);requestAnimationFrame(drawAllActivityCharts);return;}
     const sw=e.target.closest('.switch'); if(sw){const action=sw.dataset.action;sw.classList.toggle('on');sw.setAttribute('aria-pressed',sw.classList.contains('on'));if(action==='devMode')state.devMode=sw.classList.contains('on');if(action==='attackMode')state.attackMode=sw.classList.contains('on');if(action==='blockConnections')state.blockConnections=sw.classList.contains('on');if(action==='securityRuleToggle'&&sw.dataset.ruleKey)state.securityRuleOverrides[sw.dataset.ruleKey]=sw.classList.contains('on');toast('Setting updated',`${action||'setting'} is now ${sw.classList.contains('on')?'enabled':'disabled'}.`);return;}
     const a=e.target.closest('[data-action]');
     if(!a){
@@ -1530,7 +1535,7 @@
       closeModal();toast('Settings saved','Account, appearance and server preferences were updated.');render();syncLiveData(false);return;
     }
     if(action==='fillDemoLogin'){const t=window.PARADOX_CONFIG?.testAccount||{};const email=$('#loginEmail',authLayer),pass=$('#loginPassword',authLayer);if(email)email.value=t.email||'';if(pass)pass.value=t.password||'';return;}
-    if(action==='logout'){closeDropdown();await window.ParadoxAPI.logout();localStorage.removeItem('pa_session');localStorage.removeItem('pa_account');state.authenticated=false;state.demoSession=false;setDemoData(false);showBootSequence(showLogin);return;}
+    if(action==='logout'){closeDropdown();await window.ParadoxAPI.logout();localStorage.removeItem('pa_session');localStorage.removeItem('pa_account');state.authenticated=false;state.demoSession=false;state.sectionData={};window.ParadoxData.clear();setDemoData(false);showBootSequence(showLogin);return;}
     if(action==='toggleCustomDropdown'){a.closest('.custom-dropdown')?.classList.toggle('open');return;}
     if(action==='customDropdownOption'){const wrap=a.closest('.custom-dropdown');if(wrap){wrap.dataset.value=a.dataset.value;wrap.querySelector('.custom-dropdown-btn span').textContent=a.dataset.value;wrap.classList.remove('open');}return;}
     if(action==='mapMode'){state.mapMode=a.dataset.mode;const prefs=readStore('pa_preferences',{});prefs.mapMode=state.mapMode;prefs.accent=state.accent;localStorage.setItem('pa_preferences',JSON.stringify(prefs));render();return;}

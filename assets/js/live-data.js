@@ -14,6 +14,7 @@
   }
   async function fetchSection(state){
     const key=state.page;
+    if(key==='overview')return api().query('dashboard_stats',{range:state.chartRange||'24h'});
     if(key==='permissions')return state.permissionsTab==='roles'?api().query('permissions'):api().getAccessUsers();
     if(key==='api-keys'||key==='server-details')return api().getSettings();
     if(key==='cdn')return api().storageStatus();
@@ -23,14 +24,15 @@
   }
   function ensure(state,render){
     if(state.demoSession||!state.authenticated)return;
-    const key=`${state.user?.id||'nui'}:${state.server?.serverId||''}:${state.page}:${state.permissionsTab||''}`;
+    const key=`${state.user?.id||'nui'}:${state.server?.serverId||''}:${state.page}:${state.permissionsTab||''}:${state.chartRange||''}`;
     const old=cache.get(key);if(old&&(old.pending||Date.now()-old.at<15000))return;
     const page=state.page,entry={pending:true,at:Date.now()};cache.set(key,entry);
-    Promise.resolve().then(()=>fetchSection(state)).then(data=>{
+    const captured={...state};
+    Promise.resolve().then(()=>fetchSection(captured)).then(data=>{
       entry.data=data||{};
       if(cache.get(key)!==entry||!state.authenticated)return;
       state.sectionData=state.sectionData||{};state.sectionData[page]=entry.data;
-      if(page==='logs')state.live.sections={...state.live.sections,logs:(data.rows||[]).map(r=>({time:date(r.created_at),log:`${r.actor}: ${r.kind}`}))};
+      if(page==='logs'&&state.live)state.live.sections={...state.live.sections,logs:(data.rows||[]).map(r=>({time:date(r.created_at),log:`${r.actor}: ${r.kind}`}))};
     }).catch(error=>{entry.error=error.message;if(cache.get(key)===entry){state.sectionData=state.sectionData||{};state.sectionData[page]={error:error.message};}}).finally(()=>{entry.pending=false;if(cache.get(key)===entry&&state.authenticated&&state.page===page)render(page);});
   }
   function falcon(data,mode){
