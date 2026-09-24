@@ -2,6 +2,7 @@
 (() => {
   const cache=new Map();
   const date=value=>value?new Date(Number(value)*1000).toLocaleString():'—';
+  const bytes=value=>Number.isFinite(Number(value))?(Number(value)/1048576).toFixed(2)+' MB':'Not reported';
   const datasets={logs:'audit',logbook:'audit',replays:'evidence','removed-detections':'reviews',falcon:'analytics','firewall-analytics':'analytics',insights:'health','live-view':'screenshots',console:'audit',bans:'bans'};
   const api=()=>window.ParadoxAPI;
   const sum=(rows,key)=>rows.reduce((total,r)=>total+Number(r[key]||0),0);
@@ -14,11 +15,12 @@
   }
   async function fetchSection(state){
     const key=state.page;
-    if(key==='overview')return api().query('dashboard_stats',{range:state.chartRange||'24h'});
+    if(key==='overview'){const result=await api().query('dashboard_stats',{range:state.chartRange||'24h'});try{result.storage=await api().storageStatus();}catch{}return result;}
     if(key==='permissions')return state.permissionsTab==='roles'?api().query('permissions'):api().getAccessUsers();
     if(key==='api-keys'||key==='server-details')return api().getSettings();
     if(key==='cdn')return api().storageStatus();
-    if(key==='backups'||key.endsWith('-rules')||['event-protection','key-locks','rate-limits'].includes(key))return api().getConfig();
+    if(key==='backups')return api().mode==='nui'?Promise.reject(Error('Configuration backups are managed on the website.')):api().query('policy_history',{page:1,pageSize:50});
+    if(key.endsWith('-rules')||['event-protection','key-locks','rate-limits'].includes(key))return api().getConfig();
     if(datasets[key])return api().query(datasets[key],{page:1,pageSize:50});
     return {};
   }
@@ -32,6 +34,7 @@
       entry.data=data||{};
       if(cache.get(key)!==entry||!state.authenticated)return;
       state.sectionData=state.sectionData||{};state.sectionData[page]=entry.data;
+      if(page==='overview'&&data?.storage&&state.live)state.live.storage={used:'~'+bytes(data.storage.usedBytes),quota:'estimated server database size'};
       if(page==='logs'&&state.live)state.live.sections={...state.live.sections,logs:(data.rows||[]).map(r=>({time:date(r.created_at),log:`${r.actor}: ${r.kind}`}))};
     }).catch(error=>{entry.error=error.message;if(cache.get(key)===entry&&state.authenticated){state.sectionData=state.sectionData||{};state.sectionData[page]={error:error.message};}}).finally(()=>{entry.pending=false;if(cache.get(key)===entry&&state.authenticated&&state.page===page)render(page);});
   }
@@ -45,5 +48,5 @@
   const ruleIds={'Anti Teleport':['movement.server_delta'],'Anti NoClip':['movement.context'],'Anti Spectate':['camera.spectate'],'Anti God Mode':['player.invincible','player.server_invincible'],'Anti Ped Model Changer':['player.server_model'],'Anti Free Cam (1)':['camera.freecam'],'Anti Invisible':['player.invisible'],'Anti Aim Bot':['combat.geometry'],'Anti Vehicle Modifier':['vehicle.server_state'],'Menu Detection (1)':['menu.context'],'Anti Entity Exploits':['entity.policy'],'Verify Weapon Damage':['weapon.policy'],'Auto Anti Weapon Spawn':['weapon.inventory']};
   const settingPaths={'Enable Whitelist':'entities.requireAllowlist','Whitelist Enabled':'world.particles.requireAllowlist'};
   function binding(state,label){const data=state.sectionData?.[state.page];const ids=(ruleIds[label]||[]).filter(id=>data?.policy?.detections?.[id]);const settingPath=settingPaths[label];const hasSetting=settingPath&&typeof data?.policy?.settings?.[settingPath]==='boolean';return {ids,data,settingPath:hasSetting?settingPath:null,available:hasSetting||ids.length>0,enabled:hasSetting?data.policy.settings[settingPath]:ids.length>0&&ids.every(id=>data.policy.detections[id].enabled)};}
-  window.ParadoxData={decorate,ensure,falcon,date,binding,clear(){cache.clear();}};
+  window.ParadoxData={decorate,ensure,falcon,date,bytes,binding,clear(){cache.clear();}};
 })();

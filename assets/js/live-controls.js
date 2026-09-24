@@ -95,12 +95,25 @@ window.installParadoxLiveControls=function({state,esc,fa,openModal,closeModal,to
     if(action==='clearCache'){window.ParadoxData.clear();toast('Cache cleared','Dashboard records will reload from the server.');render(state.page);return;}
     if(action==='syncRules'){const result=await api.getConfig();if(!result?.policy)throw Error('Policy is unavailable');state.policy=result;toast('Policy refreshed',`Loaded server policy revision ${result.revision}.`);return;}
     if(action==='runConsole'){const command=$('#consoleInput')?.value.trim();if(!command)return;const response=await api.performAction('console',{command});state.consoleResponse=response;toast('Status received',`Mode ${response.mode||'unknown'}; database ${response.db?.schema||'unknown'}.`);return;}
-    if(action==='createBackup'){const result=await api.getConfig();if(!result?.policy)throw Error('Policy is unavailable');download('paradox-policy-'+result.revision+'.json',JSON.stringify(result,null,2));toast('Backup downloaded','The current revision and policy were exported.');return;}
+    if(action==='createBackup'||action==='liveRestoreBackup'){
+      if(api.mode==='nui')throw Error('Configuration backups are managed on the website.');
+      const current=await api.getConfig();if(!current?.policy)throw Error('Policy is unavailable');
+      const restore=action==='liveRestoreBackup',saved=restore?(await api.query('policy_version',{revision:Number(el.dataset.revision)})).detail:null;
+      state.backupDraft={policy:restore?saved.policy:current.policy,revision:current.revision,restore};
+      openModal(restore?'Restore Backup':'Create Backup',`<div class="pro-form-modal"><div class="pro-form-icon">${fa('box-archive')}</div><h2>${restore?'Restore revision '+esc(saved.revision):'Create a verified snapshot'}</h2><p>${restore?'The saved policy will be validated and committed as a new audited revision. Existing revisions are retained.':'Save the current server policy as an audited revision.'}</p><label>${restore?'Restore reason':'Backup label'}</label><input class="input" id="liveBackupReason" minlength="3" maxlength="256"></div>`,footer('liveSaveBackup',restore?'Restore Backup':'Create Backup'));return;
+    }
+    if(action==='liveSaveBackup'){
+      const draft=state.backupDraft,reason=$('#liveBackupReason').value.trim();if(!draft||reason.length<3)throw Error('A label or reason of at least three characters is required.');
+      await api.savePolicy(draft.policy,draft.revision,reason);state.backupDraft=null;closeModal();toast(draft.restore?'Policy restored':'Backup created','The server committed a new audited policy revision.');refresh();return;
+    }
+    if(action==='liveDownloadBackup'){
+      const result=await api.query('policy_version',{revision:Number(el.dataset.revision)});download('paradox-policy-'+result.detail.revision+'.json',JSON.stringify(result.detail,null,2));return;
+    }
     if(action==='screenshotPlayer'){const record=state.playerDetails[el.dataset.player];if(!record)throw Error('Player is no longer available');await api.performAction('screenshot',{target:record.source,reason:'Staff requested evidence capture'});toast('Capture requested','Check evidence for the capture result.');return;}
-    if(action==='liveInspectEvidence'){const result=await api.getDetail(el.dataset.kind,el.dataset.id);openModal('Evidence details',`<div class="v12-form-modal"><pre style="white-space:pre-wrap">${esc(JSON.stringify(result.detail,null,2))}</pre></div>`);return;}
+    if(action==='liveInspectEvidence'){await window.ParadoxInspectRecord(el.dataset.kind,el.dataset.id);return;}
     throw Error('This control is awaiting its server integration. No change was saved.');
   }
-  const handled=new Set(['liveModerate','createBan','openPlayerPicker','liveConfirmAction','liveSubmitAction','inspectRow','rowMenu','liveUnban','liveConfirmUnban','saveConfig','detectorSettings','livePolicyToggle','liveSavePolicy','inviteMember','createInviteLink','liveSaveMember','liveRevokeMember','refresh','testSync','addPlayerNote','exportLogs','clearCache','syncRules','runConsole','createBackup','screenshotPlayer','liveInspectEvidence']);
+  const handled=new Set(['liveRestoreBackup','liveSaveBackup','liveDownloadBackup','liveModerate','createBan','openPlayerPicker','liveConfirmAction','liveSubmitAction','inspectRow','rowMenu','liveUnban','liveConfirmUnban','saveConfig','detectorSettings','livePolicyToggle','liveSavePolicy','inviteMember','createInviteLink','liveSaveMember','liveRevokeMember','refresh','testSync','addPlayerNote','exportLogs','clearCache','syncRules','runConsole','createBackup','screenshotPlayer','liveInspectEvidence']);
   const pending=new Set(['saveModal','saveConfig','saveSecurityEditor','saveNativeEditor','removeRule','confirmRestart','saveZone','createApiKey','createPermissionRole','addBypass','detectorSettings']);
   document.addEventListener('click',event=>{
     if(state.demoSession)return;
