@@ -2,7 +2,7 @@
 (() => {
   const cache=new Map();
   const date=value=>value?new Date(Number(value)*1000).toLocaleString():'—';
-  const datasets={logs:'audit',logbook:'audit',replays:'evidence','removed-detections':'reviews',falcon:'analytics','firewall-analytics':'analytics',insights:'health','live-view':'screenshots',console:'health'};
+  const datasets={logs:'audit',logbook:'audit',replays:'evidence','removed-detections':'reviews',falcon:'analytics','firewall-analytics':'analytics',insights:'health','live-view':'screenshots',console:'audit',bans:'bans'};
   const api=()=>window.ParadoxAPI;
   const sum=(rows,key)=>rows.reduce((total,r)=>total+Number(r[key]||0),0);
   function decorate(snapshot){
@@ -33,7 +33,7 @@
       if(cache.get(key)!==entry||!state.authenticated)return;
       state.sectionData=state.sectionData||{};state.sectionData[page]=entry.data;
       if(page==='logs'&&state.live)state.live.sections={...state.live.sections,logs:(data.rows||[]).map(r=>({time:date(r.created_at),log:`${r.actor}: ${r.kind}`}))};
-    }).catch(error=>{entry.error=error.message;if(cache.get(key)===entry){state.sectionData=state.sectionData||{};state.sectionData[page]={error:error.message};}}).finally(()=>{entry.pending=false;if(cache.get(key)===entry&&state.authenticated&&state.page===page)render(page);});
+    }).catch(error=>{entry.error=error.message;if(cache.get(key)===entry&&state.authenticated){state.sectionData=state.sectionData||{};state.sectionData[page]={error:error.message};}}).finally(()=>{entry.pending=false;if(cache.get(key)===entry&&state.authenticated&&state.page===page)render(page);});
   }
   function falcon(data,mode){
     if(!data||data.error)return {values:[],tops:[],error:data?.error||'Loading recorded telemetry'};
@@ -42,5 +42,8 @@
     const total=sum(rows,'total'),rejected=mode==='events'?sum(rows,'rejected'):null;
     return {values:mode==='events'?[total,'—']:[total,'—','—','—',rows.length,'—'],total,tops:rows.map(r=>({name:r.event_name||`Entity type ${r.entity_type}`,total:r.total})),rejected};
   }
-  window.ParadoxData={decorate,ensure,falcon,date,clear(){cache.clear();}};
+  const ruleIds={'Anti Teleport':['movement.server_delta'],'Anti NoClip':['movement.context'],'Anti Spectate':['camera.spectate'],'Anti God Mode':['player.invincible','player.server_invincible'],'Anti Ped Model Changer':['player.server_model'],'Anti Free Cam (1)':['camera.freecam'],'Anti Invisible':['player.invisible'],'Anti Aim Bot':['combat.geometry'],'Anti Vehicle Modifier':['vehicle.server_state'],'Menu Detection (1)':['menu.context'],'Anti Entity Exploits':['entity.policy'],'Verify Weapon Damage':['weapon.policy'],'Auto Anti Weapon Spawn':['weapon.inventory']};
+  const settingPaths={'Enable Whitelist':'entities.requireAllowlist','Whitelist Enabled':'world.particles.requireAllowlist'};
+  function binding(state,label){const data=state.sectionData?.[state.page];const ids=(ruleIds[label]||[]).filter(id=>data?.policy?.detections?.[id]);const settingPath=settingPaths[label];const hasSetting=settingPath&&typeof data?.policy?.settings?.[settingPath]==='boolean';return {ids,data,settingPath:hasSetting?settingPath:null,available:hasSetting||ids.length>0,enabled:hasSetting?data.policy.settings[settingPath]:ids.length>0&&ids.every(id=>data.policy.detections[id].enabled)};}
+  window.ParadoxData={decorate,ensure,falcon,date,binding,clear(){cache.clear();}};
 })();
