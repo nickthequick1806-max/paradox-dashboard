@@ -243,7 +243,7 @@
             <div class="hero-meta"><span>${esc(state.live?.server?.framework||'FiveM')}</span><span>${esc(state.live?.server?.onesync||'OneSync')}</span><span>${esc(state.live?.server?.region||state.server.region||'Live Server')}</span><span>PARADOX Protected</span></div>
             <div class="hero-caption">${state.live?.error?'Server sync failed: '+esc(state.live.error):'Live security data is sourced from the connected FiveM server.'} Powered by <strong>PARADOX ANTICHEAT.</strong></div>
           </div>
-          <button class="btn primary hero-action" data-page-jump="server-controls">${fa('shield-halved')} Anti-Cheat Active</button>
+          <button class="btn primary hero-action" data-page-jump="server-controls">${fa('shield-halved')} ${state.demoSession?'Anti-Cheat Active':state.live?.connected?'Protection: '+esc(state.live.mode||'Unknown'):'Status Unavailable'}</button>
         </div>
       </section>
 
