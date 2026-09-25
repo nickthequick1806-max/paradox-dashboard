@@ -688,7 +688,7 @@
   }
 
   function mainPlayersPage(){
-    const rows=players.map(p=>`<tr class="detail-row" data-player="${esc(p[1])}"><td><div class="v11-player-cell"><span class="avatar">${esc(p[1][0])}</span><div><strong>${esc(p[1])}</strong><small>ID ${esc(p[0])}</small></div></div></td><td>${Number(p[5])?`<span class="v11-flag">${p[5]} risk</span>`:'—'}</td><td>${state.demoSession?'2h 18m':'—'}</td><td>${esc(p[6]||'Online')}</td></tr>`).join('');
+    const rows=players.map(p=>`<tr class="detail-row" data-player="${esc(p[0])}"><td><div class="v11-player-cell"><span class="avatar">${esc(p[1][0])}</span><div><strong>${esc(p[1])}</strong><small>ID ${esc(p[0])}</small></div></div></td><td>${Number(p[5])?`<span class="v11-flag">${p[5]} risk</span>`:'—'}</td><td>${state.demoSession?'2h 18m':window.ParadoxData.duration(state.playerDetails[p[0]]?.connectedSeconds)}</td><td>${esc(p[6]||'Online')}</td></tr>`).join('');
     return `<div class="page ref-page v11-page">${v11Title('Server','Players Management','Search, filter and manage connected or historical players.','users',`${customSelect('Off',['10s','30s'])}<button class="btn primary" data-action="refresh">${fa('rotate')}</button>`)}
       <div class="v11-online-count"><b>${players.length}</b> online players</div>
       <section class="v11-filterbar"><div class="v11-search grow">${fa('magnifying-glass')}<input placeholder="Search by name, ID, or license..."></div><button class="v11-filter-btn">${fa('filter')} Online Players ${fa('chevron-down')}</button><button class="v11-filter-btn">${fa('flag')} All Flags ${fa('chevron-down')}</button></section>
@@ -1204,12 +1204,13 @@
     </div>`,`<button class="btn" data-action="closeModal">Cancel</button><button class="btn primary" data-action="saveAccountSettings">${fa('floppy-disk')} Save Changes</button>`);
   }
 
-  function showLogin(){
+  function showLogin(error){
     document.body.classList.add('auth-active'); document.body.classList.remove('preboot');
     const test=location.protocol==='file:'?(window.PARADOX_CONFIG?.testAccount||{}):{};
     authLayer.classList.add('open'); authLayer.setAttribute('aria-hidden','false');
     authLayer.innerHTML=`<div class="auth-card login-card"><div class="auth-brand"><img src="assets/img/logo.svg" alt=""><div><h2>PARADOX <span>ANTICHEAT</span></h2><p>Secure command & protection dashboard</p></div></div><div class="auth-body"><div class="login-kicker">${fa('shield-halved')} AUTHORIZED ACCESS ONLY</div><h1 class="auth-title">Sign in to command.</h1><p class="auth-sub">Authenticate to manage your FiveM protection stack, review evidence and control connected servers.</p><form id="loginForm"><div class="auth-fields"><div class="auth-field"><label>Email address</label><div class="auth-input-wrap">${fa('envelope','regular')}<input id="loginEmail" type="email" autocomplete="email" value="${esc(test.email||'')}" placeholder="owner@example.com" required></div></div><div class="auth-field"><label>Password</label><div class="auth-input-wrap">${fa('lock')}<input id="loginPassword" type="password" autocomplete="current-password" value="${esc(test.password||'')}" placeholder="••••••••••" required></div></div></div><div class="auth-actions"><button class="btn primary login-submit" type="submit">${fa('arrow-right-to-bracket')} Authenticate Session</button></div><div class="test-credentials"><div><span>TEST ACCOUNT</span><strong>${esc(test.email||'demo@paradox-anticheat.local')}</strong></div><button type="button" class="copy-demo" data-action="fillDemoLogin">${fa('flask')} Fill demo</button></div><div class="auth-note">${fa('cloud')} Production authentication, account data and encrypted server secrets are handled by the included Cloudflare Worker + D1 backend.</div></form></div></div>`;
     if(location.protocol!=='file:')authLayer.querySelector('.test-credentials')?.remove();
+    if(error){const note=$('.auth-note',authLayer);if(note)note.textContent=error+' Reload when the service is available to retry your saved session.';}
     const inviteToken=location.hash.startsWith('#invite=')?location.hash.slice(8):null;
     if(inviteToken){$('.auth-title',authLayer).textContent='Accept your invitation.';$('.login-submit',authLayer).textContent='Create account and sign in';$('#loginPassword').minLength=12;$('#loginPassword').autocomplete='new-password';}
     $('#loginForm',authLayer)?.addEventListener('submit',async e=>{
@@ -1650,16 +1651,28 @@
   if(navigationAudit.missing.length||navigationAudit.renderFailures.length){
     console.error('[PARADOX] Navigation QA failed',navigationAudit);
   }
-  if(!state.authenticated){
-    showBootSequence(showLogin);
-  }else if(!state.setupComplete){
-    showFirstSetup();
-  }else{
-    document.body.classList.remove('preboot','auth-active');
-    authLayer.classList.remove('open');authLayer.innerHTML='';
-    render();
-    window.ParadoxAPI.getAccount().then(result=>{if(!result?.user){state.authenticated=false;localStorage.removeItem('pa_session');showLogin();return;}state.user=result.user;syncLiveData(false,true);});
+  async function restoreSession(){
+    const token=window.ParadoxAPI.token;state.authenticated=false;
+    try{
+      const result=await window.ParadoxAPI.getAccount();
+      if(token!==window.ParadoxAPI.token)return;
+      if(!result?.user)throw Object.assign(Error('Session expired'),{status:401});
+      state.user=result.user;state.authenticated=true;
+      localStorage.setItem('pa_session',JSON.stringify({v:AUTH_VERSION,createdAt:Date.now(),demo:false}));
+      if(!state.setupComplete){showFirstSetup();return;}
+      document.body.classList.remove('preboot','auth-active');authLayer.classList.remove('open');authLayer.innerHTML='';
+      await syncLiveData(false,true);
+    }catch(error){
+      if(token!==window.ParadoxAPI.token)return;
+      state.authenticated=false;state.sectionData={};state.live=null;players=[];detections=[];connectionRows=[];production.clear();
+      if(error.status===401){localStorage.removeItem('pa_session');localStorage.removeItem('pa_api_token');window.ParadoxAPI.token='';}
+      showLogin(error.message);
+    }
   }
+  if(window.ParadoxAPI.token&&!state.demoSession){showBootSequence(restoreSession);}
+  else if(!state.authenticated){showBootSequence(showLogin);}
+  else if(!state.setupComplete){showFirstSetup();}
+  else{document.body.classList.remove('preboot','auth-active');authLayer.classList.remove('open');authLayer.innerHTML='';render();}
   // One timer covers both a fresh login and restored sessions; never overlap bridge jobs.
   let lastSync=0;
   setInterval(()=>{if(state.authenticated && Date.now()-lastSync>=Math.max(5000,Number(state.server.syncInterval||5000))){lastSync=Date.now();syncLiveData(false,false);}},1000);

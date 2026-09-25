@@ -3,6 +3,7 @@
   const cache=new Map();
   const date=value=>value?new Date(Number(value)*1000).toLocaleString():'—';
   const bytes=value=>Number.isFinite(Number(value))?(Number(value)/1048576).toFixed(2)+' MB':'Not reported';
+  const duration=value=>Number.isFinite(Number(value))&&value!=null?Math.floor(value/3600)+'h '+Math.floor(value%3600/60)+'m':'—';
   const datasets={logs:'audit',logbook:'audit',replays:'evidence','removed-detections':'reviews',falcon:'analytics','firewall-analytics':'analytics',insights:'health','live-view':'screenshots',console:'audit',bans:'bans'};
   const api=()=>window.ParadoxAPI;
   const sum=(rows,key)=>rows.reduce((total,r)=>total+Number(r[key]||0),0);
@@ -48,5 +49,5 @@
   const ruleIds={'Anti Teleport':['movement.server_delta'],'Anti NoClip':['movement.context'],'Anti Spectate':['camera.spectate'],'Anti God Mode':['player.invincible','player.server_invincible'],'Anti Ped Model Changer':['player.server_model'],'Anti Free Cam (1)':['camera.freecam'],'Anti Invisible':['player.invisible'],'Anti Aim Bot':['combat.geometry'],'Anti Vehicle Modifier':['vehicle.server_state'],'Menu Detection (1)':['menu.context'],'Anti Entity Exploits':['entity.policy'],'Verify Weapon Damage':['weapon.policy'],'Auto Anti Weapon Spawn':['weapon.inventory']};
   const settingPaths={'Enable Whitelist':'entities.requireAllowlist','Whitelist Enabled':'world.particles.requireAllowlist'};
   function binding(state,label){const data=state.sectionData?.[state.page];const ids=(ruleIds[label]||[]).filter(id=>data?.policy?.detections?.[id]);const settingPath=settingPaths[label];const hasSetting=settingPath&&typeof data?.policy?.settings?.[settingPath]==='boolean';return {ids,data,settingPath:hasSetting?settingPath:null,available:hasSetting||ids.length>0,enabled:hasSetting?data.policy.settings[settingPath]:ids.length>0&&ids.every(id=>data.policy.detections[id].enabled)};}
-  window.ParadoxData={decorate,ensure,falcon,date,bytes,binding,clear(){cache.clear();}};
+  window.ParadoxData={decorate,ensure,falcon,date,bytes,duration,binding,clear(){cache.clear();}};
 })();

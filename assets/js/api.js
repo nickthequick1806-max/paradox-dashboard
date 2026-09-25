@@ -30,6 +30,7 @@
     }
     async request(path, options={}){
       if(this.mode==='demo' && !options.allowDemoFetch) return null;
+      if(this.retryAt>Date.now()){if(options.optional)return null;throw this.lastError;}
       const controller=new AbortController();
       const timer=setTimeout(()=>controller.abort(), options.timeout || 25000);
       try{
@@ -40,20 +41,21 @@
           signal:controller.signal
         });
         let data=await res.json();
-        if(!res.ok) throw new Error(data.error||`HTTP ${res.status}`);
+        if(!res.ok) throw Object.assign(new Error(data.error||`HTTP ${res.status}`),{status:res.status,code:data.code,retryAfter:data.retryAfter});
         const deadline=Date.now()+22000;
         while(data?.pending && data.jobId){
           if(Date.now()>deadline)throw new Error('Server response timed out. Check the audit before repeating an action.');
           await new Promise(resolve=>setTimeout(resolve,700));
           const poll=await fetch(`${this.baseUrl}/api/jobs/${encodeURIComponent(data.jobId)}`,{headers:this.headers(),signal:controller.signal});
           data=await poll.json();
-          if(!poll.ok)throw new Error(data.error||`HTTP ${poll.status}`);
+          if(!poll.ok)throw Object.assign(new Error(data.error||`HTTP ${poll.status}`),{status:poll.status,code:data.code,retryAfter:data.retryAfter});
         }
         if(data?.error)throw new Error(data.error);
         this.lastError=null;
         return data;
       }catch(err){
         this.lastError=err;
+        if(err.status===503||err.status===429)this.retryAt=Date.now()+Math.max(5000,Math.min(60000,Number(err.retryAfter||30)*1000));
         if(options.optional) return null;
         throw err;
       }finally{
@@ -81,7 +83,7 @@
       try{ if(this.mode!=='demo') await this.request('/api/auth/logout',{method:'POST',optional:true}); }
       finally{ this.token=''; localStorage.removeItem('pa_api_token'); }
     }
-    async getAccount(){ return this.request('/api/account',{optional:true}); }
+    async getAccount(){ return this.request('/api/account'); }
     async updateAccount(payload){
       if(this.mode==='demo') return {ok:true,user:payload,demo:true};
       return this.request('/api/account',{method:'PUT',body:payload});
@@ -98,7 +100,7 @@
     async getServers(){ return this.request('/api/servers',{optional:true}); }
     async getAccessUsers(){
       if(this.mode==='demo') return {ok:true,users:[]};
-      return this.request('/api/access',{optional:true});
+      return this.request('/api/access');
     }
     async inviteAccess(email){
       if(this.mode==='demo') return {ok:true,user:{email,status:'active'},demo:true};
@@ -123,7 +125,7 @@
     async getDetail(kind,id){return this.query('detail',{kind,id:String(id)});}
     async pair(){return this.request('/api/pairing',{method:'POST',body:{}});}
     async health(){ return this.request('/api/health',{optional:true,timeout:3500}); }
-    async storageStatus(){ return this.request('/api/storage/status',{optional:true}); }
+    async storageStatus(){ return this.request('/api/storage/status'); }
     async getAudit(limit=50){ return this.request(`/api/audit?limit=${encodeURIComponent(limit)}`,{optional:true}); }
     async sendSupport(payload){
       if(this.mode==='demo') return {ok:true,demo:true};
